@@ -1,0 +1,11 @@
+*.exe
+*.out
+*.o
+*.pch
+*.gch
+
+out.*
+*.gcov
+*.gcda
+*.gcno
+megatest.sh
