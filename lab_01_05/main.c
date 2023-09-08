@@ -12,11 +12,17 @@ int main(void)
 
     rc = bignum_scan(&num1, FIRST_ELEMENT_MANTISSA_LEN, false);
     if (rc)
+    {
+        puts("Слишком много неудачных попыток");
         return rc;
+    }
 
     rc = bignum_scan(&num2, SECOND_ELEMENT_MANTISSA_LEN, false);
     if (rc)
+    {
+        puts("Слишком много неудачных попыток");
         return rc;
+    }
 
     printf("Вы ввели:\nмножитель 1: ");
     bignum_print(&num1);
@@ -26,7 +32,10 @@ int main(void)
 
     rc = bignum_mul(&num1, &num2, &result);
     if (rc)
+    {
+        verbose_error(rc);
         return rc;
+    }
 
     printf("результат:   ");
     bignum_print(&result);

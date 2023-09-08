@@ -31,9 +31,7 @@ void shift_mantissa_to_end(bignum_t *num, size_t mantissa_len)
     shift_mantissa(num, MANTISSA_LIMIT - mantissa_len);
 }
 
-// Вот тут начинается считывание
-
-void print_scan_error(int rc)
+void verbose_error(int rc)
 {
     switch (rc)
     {
@@ -57,6 +55,8 @@ void print_scan_error(int rc)
         break;
     }
 }
+
+// Вот тут начинается считывание
 
 int get_sign(const char *cptr, bool *dst)
 {
@@ -258,6 +258,9 @@ void bignum_print(const bignum_t *num)
         printf("%d", (int)num->mantissa[i]);
     }
 
+    if (!zero_passed_flag)
+        printf("0");
+
     printf("E%0+6d", num->exponent);
 }
 
@@ -293,7 +296,7 @@ int bignum_scan(bignum_t *dst, size_t max_mantissa, bool silent)
                 ;
         }
         if (!silent)
-            print_scan_error(rc);
+            verbose_error(rc);
     }
 
     if (rc)
@@ -313,7 +316,24 @@ bignum_t double_to_bignum(double num)
     return result;
 }
 
-// Умножение пора
+// Умножение
+
+int get_dig_amount(bignum_t *num)
+{
+    int count = 0;
+    bool non_zero_found = false;
+
+    for (int i = 0; i < MANTISSA_LIMIT; ++i)
+        if (num->mantissa[i] == 0 && !non_zero_found)
+            continue;
+        else
+        {
+            non_zero_found = true;
+            ++count;
+        }
+
+    return count;
+}
 
 void shift_overflow(unsigned char *s, unsigned char *f)
 {
@@ -325,16 +345,33 @@ void shift_overflow(unsigned char *s, unsigned char *f)
     }
 }
 
+// возвращает начало и конец мантиссы для нашего типа в большом массиве
+// и округляет там, где надо
+void form_mantissa_in_tmp_type(unsigned char *arr, size_t *s, size_t *f)
+{
+    while (!arr[*s])
+        ++*s;
+
+    *f = *s + MANTISSA_LIMIT;
+    if (*f >= 2 * MANTISSA_LIMIT)
+        *f = 2 * MANTISSA_LIMIT - 1;
+    else
+    {
+        arr[*f] += arr[*f + 1] / 5;
+        shift_overflow(arr, arr + MANTISSA_LIMIT * 2 - 1);
+    }
+}
+
 int bignum_mul(bignum_t *num1, bignum_t *num2, bignum_t *dst)
 {
-    // Экспонента считается тривиально по правилам умножения в столбик
-    int32_t new_exp = num1->exponent + num2->exponent;
-
-    int rc;
-
-    rc = exp_check(new_exp);
-    if (rc)
-        return rc;
+    // если что-то нолик
+    if (!(get_dig_amount(num1) && get_dig_amount(num2)))
+    {
+        dst->is_negative = false;
+        dst->exponent = 0;
+        shift_mantissa(dst, MANTISSA_LIMIT);
+        return EXIT_SUCCESS;
+    }
 
     // при умножении двух целых чисел, значащих разрядов в результате будет
     // не больше, чем сумма значащих разрядов исходных чисел
@@ -356,17 +393,16 @@ int bignum_mul(bignum_t *num1, bignum_t *num2, bignum_t *dst)
 
     size_t non_zero_index = 0, last_index;
 
-    while (!tmp_arr[non_zero_index])
-        ++non_zero_index;
+    form_mantissa_in_tmp_type(tmp_arr, &non_zero_index, &last_index);
 
-    last_index = non_zero_index + MANTISSA_LIMIT;
-    if (last_index >= 2 * MANTISSA_LIMIT)
-        last_index = 2 * MANTISSA_LIMIT - 1;
-    else
-    {
-        tmp_arr[last_index] += tmp_arr[last_index + 1] / 5;
-        shift_overflow(tmp_arr, tmp_arr + MANTISSA_LIMIT * 2 - 1);
-    }
+    int32_t new_exp = num1->exponent + num2->exponent;
+    if ((size_t)(get_dig_amount(num1) + get_dig_amount(num2)) ==
+        (MANTISSA_LIMIT * 2 - non_zero_index + 1))
+        --new_exp;
+
+    int rc = exp_check(new_exp);
+    if (rc)
+        return rc;
 
     if (tmp_arr[non_zero_index - 1] != 0)
     {

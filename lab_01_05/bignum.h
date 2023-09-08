@@ -59,8 +59,9 @@ int bignum_to_string(char *dst, const bignum_t *num);
 int bignum_sscan(const char *src, bignum_t *num, size_t max_mantissa);
 
 bignum_t double_to_bignum(double num);
-double bignum_to_double(bignum_t num);
 
 int bignum_mul(bignum_t *num1, bignum_t *num2, bignum_t *dst);
+
+void verbose_error(int rc);
 
 #endif
