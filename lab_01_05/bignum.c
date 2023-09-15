@@ -45,10 +45,16 @@ void verbose_error(int rc)
         puts("Встретился непонятный символ");
         break;
     case EXPONENT_TOO_BIG:
-        puts("Экспонента превысила предел");
+        puts("Достигнута машинная бесконечность");
         break;
     case EXPONENT_TOO_SMALL:
-        puts("Экспонента превысила предел снизу");
+        puts("Достигнут машинный 0");
+        break;
+    case EXPONENT_TOO_BIG + 10:
+        puts("Длина экспоненты превысила предел");
+        break;
+    case EXPONENT_TOO_SMALL + 10:
+        puts("Длина экспоненты превысила предел");
         break;
     default:
         puts("Ошибка ввода без описания, интересно как это вообще");
@@ -109,8 +115,8 @@ const char **pcur, bignum_t *num, size_t max_mantissa, size_t *cur_mantissa_len)
     return EXIT_SUCCESS;
 }
 
-int read_float_part(
-const char **pcur, bignum_t *num, size_t max_mantissa, size_t *cur_mantissa_len)
+int read_float_part(const char **pcur, bignum_t *num, size_t max_mantissa,
+size_t *cur_mantissa_len, size_t *zero_count)
 {
     int32_t trailing_zero_counter = 0;
 
@@ -129,7 +135,11 @@ const char **pcur, bignum_t *num, size_t max_mantissa, size_t *cur_mantissa_len)
         if (**pcur == '0')
             ++trailing_zero_counter;
         else
+        {
+            if (*zero_count == 0)
+                *zero_count = trailing_zero_counter;
             trailing_zero_counter = 0;
+        }
 
         if (*cur_mantissa_len > max_mantissa)
             return MANTISSA_TOO_LONG;
@@ -175,9 +185,13 @@ int bignum_sscan(const char *src, bignum_t *num, size_t max_mantissa)
 
     if (*pcur == '.')
     {
-        rc = read_float_part(&pcur, num, max_mantissa, &cur_mantissa_len);
+        size_t zero_count = 0;
+        rc = read_float_part(
+        &pcur, num, max_mantissa, &cur_mantissa_len, &zero_count);
         if (rc)
             return rc;
+        if (exp_part == 0)
+            exp_part -= zero_count;
     }
     else if (strspn(pcur, EXP_CHARACTERS) != 1)
         return UNSUPPORTED_CHARACTER;
@@ -196,8 +210,13 @@ int bignum_sscan(const char *src, bignum_t *num, size_t max_mantissa)
     ++pcur;
 
     int32_t exp_in_str;
+    double tmp;
 
-    if (sscanf(pcur, "%" SCNd32, &exp_in_str) != 1)
+    sscanf(pcur, "%lf", &tmp);
+    if (tmp != (double)(int)(tmp))
+        return UNSUPPORTED_CHARACTER;
+
+    if (sscanf(pcur, "%" SCNd32 "\n", &exp_in_str) != 1)
         return UNSUPPORTED_CHARACTER;
 
     rc = exp_check(exp_in_str);
@@ -296,7 +315,11 @@ int bignum_scan(bignum_t *dst, size_t max_mantissa, bool silent)
                 ;
         }
         if (!silent)
+        {
+            if (rc == EXPONENT_TOO_BIG || rc == EXPONENT_TOO_SMALL)
+                rc += 10;
             verbose_error(rc);
+        }
     }
 
     if (rc)
