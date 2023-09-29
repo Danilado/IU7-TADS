@@ -4,6 +4,7 @@
 #include "record.h"
 #include "utils.h"
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 
 typedef struct
@@ -46,15 +47,17 @@ enum KEYS
     MIN_PRICE,
     KEY_N,
 };
-int sort_table(record_table_t *table, int32_t key);
-int sort_key_table(record_table_t *table, key_t *key_table, int32_t key);
+int bubblesort_table(record_table_t *table, int32_t key);
+int bubblesort_key_table(record_table_t *table, key_t *key_table, int32_t key);
+int insertionsort_key_table(key_t *key_table, size_t nmemb, int32_t key);
+int insertionsort_table(record_table_t *table, int32_t key);
 
-int table_thname_cmp(const void *l, const void *r);
-int key_thname_cmp(const void *l, const void *r);
-
-int table_minprice_cmp(const void *l, const void *r);
 int form_key_table(record_table_t *src, key_t **key_table, int32_t key);
-int key_minprice_cmp(const void *l, const void *r);
+
+int table_thname_cmp(const record_t *l, const record_t *r);
+int key_thname_cmp(const key_t *l, const key_t *r);
+int table_minprice_cmp(const record_t *l, const record_t *r);
+int key_minprice_cmp(const key_t *l, const key_t *r);
 
 int copy_table(record_table_t *src, record_table_t *dst);
 

@@ -47,18 +47,18 @@ void rec_table_print_keyt(const record_table_t *table, key_t *order)
     }
 
     puts(
-    "                "
+    "       "
     "┌────────┬──────────────────────┬──────────────────────┬───────────────"
     "────┬─"
     "──────────────┬────────────┬──────────────────────┬──────────────────"
     "────┬─────────┬──────────────────┐");
-    puts("INDEX  MAIN_IND │  #NUM  │   НАЗВАНИЕ  ТЕАТРА   │  НАЗВАНИЕ "
+    puts("INDEX  │  #NUM  │   НАЗВАНИЕ  ТЕАТРА   │  НАЗВАНИЕ "
          "СПЕКТАКЛЯ  │ ДИАПАЗ. БИЛ "
          "(руб) │ "
          "ТИП СПЕКТАКЛЯ │ ТИП МУЗЫК. │      КОМПОЗИТОР      │        СТРАНА    "
          "    │ ВОЗРАСТ │ Продолжит. (мин) │");
     puts(
-    "                "
+    "       "
     "├────────┼──────────────────────┼──────────────────────┼───────────────"
     "────┼─"
     "──────────────┼────────────┼──────────────────────┼──────────────────"
@@ -66,12 +66,13 @@ void rec_table_print_keyt(const record_table_t *table, key_t *order)
 
     for (size_t i = 0; i < table->el_count; ++i)
     {
-        printf("%6zu   %6zu ", i + 1, order[i].main_index + 1);
-        record_print(&table->dataptr[order[i].main_index], i + 1);
+        printf("%6zu ", i + 1);
+        record_print(
+        &table->dataptr[order[i].main_index], order[i].main_index + 1);
     }
 
     puts(
-    "                "
+    "       "
     "└────────┴──────────────────────┴──────────────────────┴───────────────"
     "────┴─"
     "──────────────┴────────────┴──────────────────────┴──────────────────"
@@ -293,13 +294,41 @@ bool check_key(int32_t key)
 
 int swap(void *e1, void *e2, size_t size)
 {
-    char buf[size];
+    char p[size];
 
-    memcpy(buf, e1, size);
+    memcpy(p, e1, size);
     memcpy(e1, e2, size);
-    memcpy(e2, buf, size);
+    memcpy(e2, p, size);
 
-    return EXIT_SUCCESS;
+    return 0;
+}
+
+void _table_bubblesort(
+record_table_t *table, int (*compare)(const record_t *, const record_t *))
+{
+    for (size_t i = 0; i < table->el_count; i++)
+        for (size_t j = 0; j < table->el_count - 1 - i; j++)
+        {
+            record_t *t1, *t2;
+            t1 = &table->dataptr[j];
+            t2 = &table->dataptr[j + 1];
+            if (compare(t1, t2) > 0)
+                swap(t1, t2, sizeof(record_t));
+        }
+}
+
+void _key_table_bubblesort(
+key_t *key_table, size_t length, int (*compare)(const key_t *, const key_t *))
+{
+    for (size_t i = 0; i < length; i++)
+        for (size_t j = 0; j < length - 1 - i; j++)
+        {
+            key_t *t1, *t2;
+            t1 = &key_table[j];
+            t2 = &key_table[j + 1];
+            if (compare(t1, t2) > 0)
+                swap(t1, t2, sizeof(key_t));
+        }
 }
 
 void mysort(
@@ -330,21 +359,6 @@ void *base, size_t num, size_t size, int (*compare)(const void *, const void *))
     free(buf);
 }
 
-int sort_table(record_table_t *table, int32_t key)
-{
-    if (!check_key(key))
-        return EXIT_FAILURE;
-
-    if (key == T_NAME)
-        mysort(
-        table->dataptr, table->el_count, sizeof(record_t), table_thname_cmp);
-    if (key == MIN_PRICE)
-        mysort(
-        table->dataptr, table->el_count, sizeof(record_t), table_minprice_cmp);
-
-    return EXIT_SUCCESS;
-}
-
 int form_key_table(record_table_t *src, key_t **key_table, int32_t key)
 {
     if (!check_key(key))
@@ -370,48 +384,94 @@ int form_key_table(record_table_t *src, key_t **key_table, int32_t key)
     return EXIT_SUCCESS;
 }
 
-int sort_key_table(record_table_t *table, key_t *key_table, int32_t key)
+int bubblesort_table(record_table_t *table, int32_t key)
 {
     if (!check_key(key))
         return EXIT_FAILURE;
 
     if (key == T_NAME)
-        mysort(key_table, table->el_count, sizeof(key_t), key_thname_cmp);
-    else if (key == MIN_PRICE)
-        mysort(key_table, table->el_count, sizeof(key_t), key_minprice_cmp);
+        _table_bubblesort(table, table_thname_cmp);
+    if (key == MIN_PRICE)
+        _table_bubblesort(table, table_minprice_cmp);
 
     return EXIT_SUCCESS;
 }
 
-int table_thname_cmp(const void *l, const void *r)
+int bubblesort_key_table(record_table_t *table, key_t *key_table, int32_t key)
 {
-    char *pl = ((record_t *)l)->theatre_name,
-         *pr = ((record_t *)r)->theatre_name;
+    if (!check_key(key))
+        return EXIT_FAILURE;
 
-    return strcmp(pl, pr);
+    if (key == T_NAME)
+        _key_table_bubblesort(key_table, table->el_count, key_thname_cmp);
+    else if (key == MIN_PRICE)
+        _key_table_bubblesort(key_table, table->el_count, key_minprice_cmp);
+
+    return EXIT_SUCCESS;
 }
 
-int key_thname_cmp(const void *l, const void *r)
+int insertionsort_table(record_table_t *table, int32_t key)
 {
-    char *pl = ((key_t *)l)->value.text, *pr = ((key_t *)r)->value.text;
+    if (!check_key(key))
+        return EXIT_FAILURE;
+    for (size_t i = 0; i < table->el_count; ++i)
+    {
+        size_t maxi = 0;
+        for (size_t j = 0; j < table->el_count - i; ++j)
+            if (key == T_NAME)
+            {
+                if (table_thname_cmp(&table->dataptr[maxi], &table->dataptr[j]))
+                    maxi = j;
+            }
+            else if (table_minprice_cmp(
+                     &table->dataptr[maxi], &table->dataptr[j]))
+                maxi = j;
 
-    return strcmp(pl, pr);
+        swap(&table->dataptr[maxi], &table->dataptr[table->el_count - i - 1],
+        sizeof(record_t));
+    }
+    return EXIT_SUCCESS;
 }
 
-int table_minprice_cmp(const void *l, const void *r)
+int insertionsort_key_table(key_t *key_table, size_t nmemb, int32_t key)
 {
-    int32_t pl = ((record_t *)l)->ticket_prices.min_price;
-    int32_t pr = ((record_t *)r)->ticket_prices.min_price;
+    if (!check_key(key))
+        return EXIT_FAILURE;
+    for (size_t i = 0; i < nmemb; ++i)
+    {
+        size_t maxi = 0;
+        for (size_t j = 0; j < nmemb - i; ++j)
+            if (key == T_NAME)
+            {
+                if (key_thname_cmp(&key_table[maxi], &key_table[j]))
+                    maxi = j;
+            }
+            else if (key_minprice_cmp(&key_table[maxi], &key_table[j]))
+                maxi = j;
 
-    return pl - pr;
+        swap(&key_table[maxi], &key_table[nmemb - i - 1], sizeof(key_t));
+    }
+    return EXIT_SUCCESS;
 }
 
-int key_minprice_cmp(const void *l, const void *r)
+int table_thname_cmp(const record_t *l, const record_t *r)
 {
-    int32_t pl = ((key_t *)l)->value.num;
-    int32_t pr = ((key_t *)r)->value.num;
+    return strcmp(l->theatre_name, r->theatre_name);
+}
 
-    return pl - pr;
+int key_thname_cmp(const key_t *l, const key_t *r)
+{
+    return strcmp(l->value.text, r->value.text);
+}
+
+int table_minprice_cmp(const record_t *l, const record_t *r)
+{
+    return l->ticket_prices.min_price - r->ticket_prices.min_price;
+}
+
+int key_minprice_cmp(const key_t *l, const key_t *r)
+{
+    return l->value.num - r->value.num;
 }
 
 int copy_table(record_table_t *src, record_table_t *dst)

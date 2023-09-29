@@ -167,14 +167,14 @@ int main(int argc, char **argv)
 
             clock_gettime(CLOCK_REALTIME, &begin);
 
-            sort_key_table(&table, key_table, tmp);
+            bubblesort_key_table(&table, key_table, tmp);
 
             clock_gettime(CLOCK_REALTIME, &end);
             time2 = delta_time(begin, end);
 
             clock_gettime(CLOCK_REALTIME, &begin);
 
-            sort_table(&tmptable, tmp);
+            bubblesort_table(&tmptable, tmp);
 
             clock_gettime(CLOCK_REALTIME, &end);
             time1 = delta_time(begin, end);
@@ -273,51 +273,333 @@ int main(int argc, char **argv)
             }
         }
         break;
-        // case TIME_TABLE: {
-        //     double avg_time1 = 0, avg_time2 = 0;
+        case TIME_TABLE: {
+            {
+                double avg_time1 = 0, avg_time2 = 0;
 
-        //     struct timespec begin, end;
-        //     long time1, time2;
-        //     record_table_t tmptable;
-        //     key_t *key_table = NULL;
+                struct timespec begin, end;
+                long time1, time2;
+                record_table_t tmptable;
+                key_t *key_table = NULL;
 
-        //     rc = copy_table(&table, &tmptable);
-        //     if (rc)
-        //     {
-        //         puts("Недостаточно памяти для создания копии таблицы");
-        //         return rc;
-        //     }
+                rc = copy_table(&table, &tmptable);
+                if (rc)
+                {
+                    puts("Недостаточно памяти для создания копии таблицы");
+                    return rc;
+                }
 
-        //     rc = form_key_table(&table, &key_table, 1);
-        //     // rc = form_key_table(&table, &key_table, 2);
-        //     if (rc)
-        //     {
-        //         puts("Недостаточно памяти для таблицы ключей");
-        //         return rc;
-        //     }
+                rc = form_key_table(&table, &key_table, 1);
+                // rc = form_key_table(&table, &key_table, 2);
+                if (rc)
+                {
+                    puts("Недостаточно памяти для таблицы ключей");
+                    return rc;
+                }
 
-        //     for (size_t i = 0; i < TEST_RUN_COUNT; i++)
-        //     {
-        //         clock_gettime(CLOCK_REALTIME, &begin);
+                for (size_t i = 0; i < TEST_RUN_COUNT; i++)
+                {
+                    form_key_table(&table, &key_table, 1);
 
-        //         sort_key_table(&table, key_table, 1);
+                    clock_gettime(CLOCK_REALTIME, &begin);
 
-        //         clock_gettime(CLOCK_REALTIME, &end);
-        //         time2 = delta_time(begin, end);
-        //         if (avg_time2 < 1E-8)
-        //             avg_time2 = time2;
-        //         else
-        //         {
-        //             avg_time2 += time2;
-        //             avg_time2 /= 2.0;
-        //         }
-        //     }
-        // }
+                    bubblesort_key_table(&table, key_table, 1);
+
+                    clock_gettime(CLOCK_REALTIME, &end);
+
+                    time2 = delta_time(begin, end);
+                    if (avg_time2 < 1E-8)
+                        avg_time2 = time2;
+                    else
+                    {
+                        avg_time2 += time2;
+                        avg_time2 /= 2.0;
+                    }
+                }
+
+                for (size_t i = 0; i < TEST_RUN_COUNT; i++)
+                {
+                    copy_table(&table, &tmptable);
+                    clock_gettime(CLOCK_REALTIME, &begin);
+
+                    bubblesort_table(&tmptable, 1);
+
+                    clock_gettime(CLOCK_REALTIME, &end);
+                    time1 = delta_time(begin, end);
+
+                    free(tmptable.dataptr);
+
+                    if (avg_time1 < 1E-8)
+                        avg_time1 = time1;
+                    else
+                    {
+                        avg_time1 += time1;
+                        avg_time1 /= 2.0;
+                    }
+                }
+
+                printf("Сортировка по названию театра:\n");
+                printf(
+                "Среднее время сортировки таблицы        пузырьком: %.0lf\n",
+                avg_time1);
+                printf(
+                "Среднее время сортировки таблицы ключей пузырьком: %.0lf\n",
+                avg_time2);
+                printf("Сортировка таблицы ключей быстрее на %.0lf%%\n",
+                avg_time1 / avg_time2 * 100 - 100);
+                printf("\n");
+            }
+            {
+                double avg_time1 = 0, avg_time2 = 0;
+
+                struct timespec begin, end;
+                long time1, time2;
+                record_table_t tmptable;
+                key_t *key_table = NULL;
+
+                rc = copy_table(&table, &tmptable);
+                if (rc)
+                {
+                    puts("Недостаточно памяти для создания копии таблицы");
+                    return rc;
+                }
+
+                rc = form_key_table(&table, &key_table, 1);
+                // rc = form_key_table(&table, &key_table, 2);
+                if (rc)
+                {
+                    puts("Недостаточно памяти для таблицы ключей");
+                    return rc;
+                }
+
+                for (size_t i = 0; i < TEST_RUN_COUNT; i++)
+                {
+                    form_key_table(&table, &key_table, 2);
+
+                    clock_gettime(CLOCK_REALTIME, &begin);
+
+                    bubblesort_key_table(&table, key_table, 2);
+
+                    clock_gettime(CLOCK_REALTIME, &end);
+
+                    time2 = delta_time(begin, end);
+                    if (avg_time2 < 1E-8)
+                        avg_time2 = time2;
+                    else
+                    {
+                        avg_time2 += time2;
+                        avg_time2 /= 2.0;
+                    }
+                }
+
+                for (size_t i = 0; i < TEST_RUN_COUNT; i++)
+                {
+                    copy_table(&table, &tmptable);
+                    clock_gettime(CLOCK_REALTIME, &begin);
+
+                    bubblesort_table(&tmptable, 2);
+
+                    clock_gettime(CLOCK_REALTIME, &end);
+                    time1 = delta_time(begin, end);
+
+                    free(tmptable.dataptr);
+
+                    if (avg_time1 < 1E-8)
+                        avg_time1 = time1;
+                    else
+                    {
+                        avg_time1 += time1;
+                        avg_time1 /= 2.0;
+                    }
+                }
+
+                printf("Сортировка по минимальной цене:\n");
+                printf(
+                "Среднее время сортировки таблицы        пузырьком: %.0lf\n",
+                avg_time1);
+                printf(
+                "Среднее время сортировки таблицы ключей пузырьком: %.0lf\n",
+                avg_time2);
+                printf("Сортировка таблицы ключей быстрее на %.0lf%%\n",
+                avg_time1 / avg_time2 * 100 - 100);
+                printf("\n");
+            }
+            {
+                double avg_time1 = 0, avg_time2 = 0;
+
+                struct timespec begin, end;
+                long time1, time2;
+                record_table_t tmptable;
+                key_t *key_table = NULL;
+
+                rc = copy_table(&table, &tmptable);
+                if (rc)
+                {
+                    puts("Недостаточно памяти для создания копии таблицы");
+                    return rc;
+                }
+
+                rc = form_key_table(&table, &key_table, 1);
+                // rc = form_key_table(&table, &key_table, 2);
+                if (rc)
+                {
+                    puts("Недостаточно памяти для таблицы ключей");
+                    return rc;
+                }
+
+                for (size_t i = 0; i < TEST_RUN_COUNT; i++)
+                {
+                    form_key_table(&table, &key_table, 1);
+
+                    clock_gettime(CLOCK_REALTIME, &begin);
+
+                    insertionsort_key_table(key_table, table.el_count, 1);
+
+                    clock_gettime(CLOCK_REALTIME, &end);
+
+                    time2 = delta_time(begin, end);
+                    if (avg_time2 < 1E-8)
+                        avg_time2 = time2;
+                    else
+                    {
+                        avg_time2 += time2;
+                        avg_time2 /= 2.0;
+                    }
+                }
+
+                for (size_t i = 0; i < TEST_RUN_COUNT; i++)
+                {
+                    copy_table(&table, &tmptable);
+                    clock_gettime(CLOCK_REALTIME, &begin);
+
+                    insertionsort_table(&table, 1);
+
+                    clock_gettime(CLOCK_REALTIME, &end);
+                    time1 = delta_time(begin, end);
+
+                    free(tmptable.dataptr);
+
+                    if (avg_time1 < 1E-8)
+                        avg_time1 = time1;
+                    else
+                    {
+                        avg_time1 += time1;
+                        avg_time1 /= 2.0;
+                    }
+                }
+
+                printf("Сортировка по названию театра цене:\n");
+                printf(
+                "Среднее время сортировки таблицы        выбором: %.0lf\n",
+                avg_time1);
+                printf(
+                "Среднее время сортировки таблицы ключей выбором: %.0lf\n",
+                avg_time2);
+                printf("Сортировка таблицы ключей быстрее на %.6lf%%\n",
+                avg_time1 / avg_time2 * 100 - 100);
+                printf("\n");
+            }
+            {
+                double avg_time1 = 0, avg_time2 = 0;
+
+                struct timespec begin, end;
+                long time1, time2;
+                record_table_t tmptable;
+                key_t *key_table = NULL;
+
+                rc = copy_table(&table, &tmptable);
+                if (rc)
+                {
+                    puts("Недостаточно памяти для создания копии таблицы");
+                    return rc;
+                }
+
+                rc = form_key_table(&table, &key_table, 2);
+                // rc = form_key_table(&table, &key_table, 2);
+                if (rc)
+                {
+                    puts("Недостаточно памяти для таблицы ключей");
+                    return rc;
+                }
+
+                for (size_t i = 0; i < TEST_RUN_COUNT; i++)
+                {
+                    form_key_table(&table, &key_table, 2);
+
+                    clock_gettime(CLOCK_REALTIME, &begin);
+
+                    insertionsort_key_table(key_table, table.el_count, 2);
+
+                    clock_gettime(CLOCK_REALTIME, &end);
+
+                    time2 = delta_time(begin, end);
+                    if (avg_time2 < 1E-8)
+                        avg_time2 = time2;
+                    else
+                    {
+                        avg_time2 += time2;
+                        avg_time2 /= 2.0;
+                    }
+                }
+
+                for (size_t i = 0; i < TEST_RUN_COUNT; i++)
+                {
+                    copy_table(&table, &tmptable);
+                    clock_gettime(CLOCK_REALTIME, &begin);
+
+                    insertionsort_table(&table, 2);
+
+                    clock_gettime(CLOCK_REALTIME, &end);
+                    time1 = delta_time(begin, end);
+
+                    free(tmptable.dataptr);
+
+                    if (avg_time1 < 1E-8)
+                        avg_time1 = time1;
+                    else
+                    {
+                        avg_time1 += time1;
+                        avg_time1 /= 2.0;
+                    }
+                }
+
+                printf("Сортировка по минимальной цене:\n");
+                printf(
+                "Среднее время сортировки таблицы        выбором: %.0lf\n",
+                avg_time1);
+                printf(
+                "Среднее время сортировки таблицы ключей выбором: %.0lf\n",
+                avg_time2);
+                printf("Сортировка таблицы ключей быстрее на %.0lf%%\n",
+                avg_time1 / avg_time2 * 100 - 100);
+                printf("\n");
+            }
+            {
+                printf("Во всех сортировках количество необходимой памяти "
+                       "будет одинаковым.\n");
+                printf("Объём требуемой памяти для сортировки таблицы: %lu\n",
+                table.reserved_el_count * sizeof(record_t));
+                printf(
+                "Обём памяти, затрачиваемый для хранения таблицы ключей: %lu\n",
+                table.el_count * sizeof(key_t));
+                printf("Суммарная память, необходимая для сортировки таблицы "
+                       "ключей: %lu\n",
+                table.reserved_el_count * sizeof(record_t) +
+                table.el_count * sizeof(key_t));
+                printf("Таким образом, таблица ключей требует %.0lf%% памяти "
+                       "по отношению к хранению самой таблицы.\n",
+                (double)(table.reserved_el_count * sizeof(record_t) +
+                         table.el_count * sizeof(key_t)) /
+                (double)(table.reserved_el_count * sizeof(record_t)) * 100);
+            }
+        }
         default:
             break;
         }
 
     } while (mode != EXIT);
+
+    free(table.dataptr);
 
     return EXIT_SUCCESS;
 }
