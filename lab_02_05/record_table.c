@@ -294,13 +294,16 @@ bool check_key(int32_t key)
 
 int swap(void *e1, void *e2, size_t size)
 {
-    char p[size];
-
-    memcpy(p, e1, size);
-    memcpy(e1, e2, size);
-    memcpy(e2, p, size);
-
-    return 0;
+    char *p = e1, *q = e2, tmp;
+    for (size_t i = 0; i < size; i++)
+    {
+        tmp = *p;
+        *p = *q;
+        *q = tmp;
+        p++;
+        q++;
+    }
+    return EXIT_SUCCESS;
 }
 
 void _table_bubblesort(
@@ -439,17 +442,12 @@ int insertionsort_key_table(key_t *key_table, size_t nmemb, int32_t key)
         return EXIT_FAILURE;
     for (size_t i = 0; i < nmemb; ++i)
     {
-        size_t maxi = 0;
+        size_t maxj = 0;
         for (size_t j = 0; j < nmemb - i; ++j)
-            if (key == T_NAME)
-            {
-                if (key_thname_cmp(&key_table[maxi], &key_table[j]))
-                    maxi = j;
-            }
-            else if (key_minprice_cmp(&key_table[maxi], &key_table[j]))
-                maxi = j;
+            if (key_minprice_cmp(key_table + maxj, key_table + j))
+                maxj = j;
 
-        swap(&key_table[maxi], &key_table[nmemb - i - 1], sizeof(key_t));
+        swap(key_table + maxj, key_table + nmemb - i - 1, sizeof(key_t));
     }
     return EXIT_SUCCESS;
 }

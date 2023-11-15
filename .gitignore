@@ -9,3 +9,11 @@ out.*
 *.gcda
 *.gcno
 megatest.sh
+
+*.d
+*.lastbuildstate
+
+*/data
+*/data/*
+
+.bin

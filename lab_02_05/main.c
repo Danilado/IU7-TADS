@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define TEST_RUN_COUNT 1000
+#define TEST_RUN_COUNT 100
 
 enum modes
 {
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
              "3: Отсортировать таблицу\n"
              "4: Вывести проходящие по фильтру (из задания) записи\n"
              "5: Удалить элемент из таблицы\n"
-             "6: Вывести таблицу эффективности сортировки\n"
+             "6: Вывести оценку эффективности сортировок\n"
              "0: Выход");
         printf("> ");
 
@@ -299,81 +299,6 @@ int main(int argc, char **argv)
 
                 for (size_t i = 0; i < TEST_RUN_COUNT; i++)
                 {
-                    form_key_table(&table, &key_table, 1);
-
-                    clock_gettime(CLOCK_REALTIME, &begin);
-
-                    bubblesort_key_table(&table, key_table, 1);
-
-                    clock_gettime(CLOCK_REALTIME, &end);
-
-                    time2 = delta_time(begin, end);
-                    if (avg_time2 < 1E-8)
-                        avg_time2 = time2;
-                    else
-                    {
-                        avg_time2 += time2;
-                        avg_time2 /= 2.0;
-                    }
-                }
-
-                for (size_t i = 0; i < TEST_RUN_COUNT; i++)
-                {
-                    copy_table(&table, &tmptable);
-                    clock_gettime(CLOCK_REALTIME, &begin);
-
-                    bubblesort_table(&tmptable, 1);
-
-                    clock_gettime(CLOCK_REALTIME, &end);
-                    time1 = delta_time(begin, end);
-
-                    free(tmptable.dataptr);
-
-                    if (avg_time1 < 1E-8)
-                        avg_time1 = time1;
-                    else
-                    {
-                        avg_time1 += time1;
-                        avg_time1 /= 2.0;
-                    }
-                }
-
-                printf("Сортировка по названию театра:\n");
-                printf(
-                "Среднее время сортировки таблицы        пузырьком: %.0lf\n",
-                avg_time1);
-                printf(
-                "Среднее время сортировки таблицы ключей пузырьком: %.0lf\n",
-                avg_time2);
-                printf("Сортировка таблицы ключей быстрее на %.0lf%%\n",
-                avg_time1 / avg_time2 * 100 - 100);
-                printf("\n");
-            }
-            {
-                double avg_time1 = 0, avg_time2 = 0;
-
-                struct timespec begin, end;
-                long time1, time2;
-                record_table_t tmptable;
-                key_t *key_table = NULL;
-
-                rc = copy_table(&table, &tmptable);
-                if (rc)
-                {
-                    puts("Недостаточно памяти для создания копии таблицы");
-                    return rc;
-                }
-
-                rc = form_key_table(&table, &key_table, 1);
-                // rc = form_key_table(&table, &key_table, 2);
-                if (rc)
-                {
-                    puts("Недостаточно памяти для таблицы ключей");
-                    return rc;
-                }
-
-                for (size_t i = 0; i < TEST_RUN_COUNT; i++)
-                {
                     form_key_table(&table, &key_table, 2);
 
                     clock_gettime(CLOCK_REALTIME, &begin);
@@ -383,13 +308,7 @@ int main(int argc, char **argv)
                     clock_gettime(CLOCK_REALTIME, &end);
 
                     time2 = delta_time(begin, end);
-                    if (avg_time2 < 1E-8)
-                        avg_time2 = time2;
-                    else
-                    {
-                        avg_time2 += time2;
-                        avg_time2 /= 2.0;
-                    }
+                    avg_time2 += time2;
                 }
 
                 for (size_t i = 0; i < TEST_RUN_COUNT; i++)
@@ -404,99 +323,21 @@ int main(int argc, char **argv)
 
                     free(tmptable.dataptr);
 
-                    if (avg_time1 < 1E-8)
-                        avg_time1 = time1;
-                    else
-                    {
-                        avg_time1 += time1;
-                        avg_time1 /= 2.0;
-                    }
+                    avg_time1 += time1;
                 }
+
+                avg_time1 /= TEST_RUN_COUNT;
+                avg_time2 /= TEST_RUN_COUNT;
 
                 printf("Сортировка по минимальной цене:\n");
                 printf(
-                "Среднее время сортировки таблицы        пузырьком: %.0lf\n",
+                "Среднее время сортировки таблицы        пузырьком: %.0lfнс\n",
                 avg_time1);
                 printf(
-                "Среднее время сортировки таблицы ключей пузырьком: %.0lf\n",
+                "Среднее время сортировки таблицы ключей пузырьком: %.0lfнс\n",
                 avg_time2);
                 printf("Сортировка таблицы ключей быстрее на %.0lf%%\n",
-                avg_time1 / avg_time2 * 100 - 100);
-                printf("\n");
-            }
-            {
-                double avg_time1 = 0, avg_time2 = 0;
-
-                struct timespec begin, end;
-                long time1, time2;
-                record_table_t tmptable;
-                key_t *key_table = NULL;
-
-                rc = copy_table(&table, &tmptable);
-                if (rc)
-                {
-                    puts("Недостаточно памяти для создания копии таблицы");
-                    return rc;
-                }
-
-                rc = form_key_table(&table, &key_table, 1);
-                // rc = form_key_table(&table, &key_table, 2);
-                if (rc)
-                {
-                    puts("Недостаточно памяти для таблицы ключей");
-                    return rc;
-                }
-
-                for (size_t i = 0; i < TEST_RUN_COUNT; i++)
-                {
-                    form_key_table(&table, &key_table, 1);
-
-                    clock_gettime(CLOCK_REALTIME, &begin);
-
-                    insertionsort_key_table(key_table, table.el_count, 1);
-
-                    clock_gettime(CLOCK_REALTIME, &end);
-
-                    time2 = delta_time(begin, end);
-                    if (avg_time2 < 1E-8)
-                        avg_time2 = time2;
-                    else
-                    {
-                        avg_time2 += time2;
-                        avg_time2 /= 2.0;
-                    }
-                }
-
-                for (size_t i = 0; i < TEST_RUN_COUNT; i++)
-                {
-                    copy_table(&table, &tmptable);
-                    clock_gettime(CLOCK_REALTIME, &begin);
-
-                    insertionsort_table(&table, 1);
-
-                    clock_gettime(CLOCK_REALTIME, &end);
-                    time1 = delta_time(begin, end);
-
-                    free(tmptable.dataptr);
-
-                    if (avg_time1 < 1E-8)
-                        avg_time1 = time1;
-                    else
-                    {
-                        avg_time1 += time1;
-                        avg_time1 /= 2.0;
-                    }
-                }
-
-                printf("Сортировка по названию театра цене:\n");
-                printf(
-                "Среднее время сортировки таблицы        выбором: %.0lf\n",
-                avg_time1);
-                printf(
-                "Среднее время сортировки таблицы ключей выбором: %.0lf\n",
-                avg_time2);
-                printf("Сортировка таблицы ключей быстрее на %.6lf%%\n",
-                avg_time1 / avg_time2 * 100 - 100);
+                avg_time1 / avg_time2 * 100.0 - 100.0);
                 printf("\n");
             }
             {
@@ -533,13 +374,7 @@ int main(int argc, char **argv)
                     clock_gettime(CLOCK_REALTIME, &end);
 
                     time2 = delta_time(begin, end);
-                    if (avg_time2 < 1E-8)
-                        avg_time2 = time2;
-                    else
-                    {
-                        avg_time2 += time2;
-                        avg_time2 /= 2.0;
-                    }
+                    avg_time2 += time2;
                 }
 
                 for (size_t i = 0; i < TEST_RUN_COUNT; i++)
@@ -554,24 +389,21 @@ int main(int argc, char **argv)
 
                     free(tmptable.dataptr);
 
-                    if (avg_time1 < 1E-8)
-                        avg_time1 = time1;
-                    else
-                    {
-                        avg_time1 += time1;
-                        avg_time1 /= 2.0;
-                    }
+                    avg_time1 += time1;
                 }
+
+                avg_time1 /= TEST_RUN_COUNT;
+                avg_time2 /= TEST_RUN_COUNT;
 
                 printf("Сортировка по минимальной цене:\n");
                 printf(
-                "Среднее время сортировки таблицы        выбором: %.0lf\n",
+                "Среднее время сортировки таблицы        выбором: %.0lfнс\n",
                 avg_time1);
                 printf(
-                "Среднее время сортировки таблицы ключей выбором: %.0lf\n",
+                "Среднее время сортировки таблицы ключей выбором: %.0lfнс\n",
                 avg_time2);
                 printf("Сортировка таблицы ключей быстрее на %.0lf%%\n",
-                avg_time1 / avg_time2 * 100 - 100);
+                avg_time1 / avg_time2 * 100.0 - 100.0);
                 printf("\n");
             }
             {
@@ -596,7 +428,6 @@ int main(int argc, char **argv)
         default:
             break;
         }
-
     } while (mode != EXIT);
 
     free(table.dataptr);
