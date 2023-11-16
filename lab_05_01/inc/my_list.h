@@ -5,16 +5,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-enum list_errors {
-  LIST_NO_MEMORY = 1,
-  LIST_BAD_INDEX,
-  LIST_NO_HEAD,
+enum list_errors
+{
+    LIST_NO_MEMORY = 1,
+    LIST_BAD_INDEX,
+    LIST_NO_HEAD,
 };
 
 typedef struct node node_t;
-struct node {
-  void *data;
-  node_t *next;
+struct node
+{
+    void *data;
+    node_t *next;
 };
 
 void list_destroy(node_t **head);
@@ -45,6 +47,8 @@ void *node_get_data(node_t *node);
 // ***
 
 void list_apply(node_t *head, void (*func)(node_t *));
+void list_apply_darg(
+node_t *head, void (*func)(node_t *, void *, void *), void *arg1, void *arg2);
 
 // ЗАДАНИЯ ПО ВЫБОРУ
 
@@ -69,7 +73,7 @@ void append(node_t **head_a, node_t **head_b);
 void front_back_split(node_t *head, node_t **back);
 
 node_t *sorted_merge(node_t **head_a, node_t **head_b,
-                     int (*comparator)(const void *, const void *));
+int (*comparator)(const void *, const void *));
 
 node_t *sort(node_t *head, int (*comparator)(const void *, const void *));
 

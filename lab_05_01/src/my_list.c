@@ -261,6 +261,17 @@ void list_apply(node_t *head, void (*func)(node_t *))
     }
 }
 
+void list_apply_darg(
+node_t *head, void (*func)(node_t *, void *, void *), void *arg1, void *arg2)
+{
+    node_t *cur = head;
+    while (cur)
+    {
+        func(cur, arg1, arg2);
+        cur = cur->next;
+    }
+}
+
 // ЗАДАНИЯ ПО ВЫБОРУ
 
 // clang-format off

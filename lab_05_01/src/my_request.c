@@ -28,3 +28,13 @@ double req_get_arrival_time(const request_t req)
 {
     return req->arrival_time;
 }
+
+void req_time_add(request_t req, double t)
+{
+    req->arrival_time += t;
+}
+
+enum req_type req_get_type(const request_t req)
+{
+    return req->type;
+}

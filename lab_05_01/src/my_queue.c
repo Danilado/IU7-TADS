@@ -78,3 +78,15 @@ void set_verbose_push(enum q_verbose_state state)
 {
     QUEUE_VERBOSE_PUSH = state;
 }
+
+void queue_apply_darg(queue_t q,
+void (*func)(node_t *el, void *arg1, void *arg2), void *arg1, void *arg2)
+{
+    list_apply_darg(q->list_head, func, arg1, arg2);
+}
+
+void queue_clear(queue_t q)
+{
+    list_clear(&q->list_head);
+    q->length = 0;
+}
