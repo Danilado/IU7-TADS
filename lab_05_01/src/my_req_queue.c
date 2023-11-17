@@ -63,6 +63,14 @@ double req_q_get_cur_avg_wait(req_queue_t q)
 size_t req_q_fill(req_queue_t q, size_t t1_count)
 {
     double timeline = 0.0;
+
+    {
+        request_t tmp = req_create(TYPE_TWO);
+        if (!tmp)
+            return 0;
+        queue_push(q->queue, tmp);
+    }
+
     for (size_t i = 0; i < t1_count; ++i)
     {
         request_t tmp = req_create(TYPE_ONE);
@@ -71,6 +79,7 @@ size_t req_q_fill(req_queue_t q, size_t t1_count)
         double tmptime = req_get_arrival_time(tmp);
         req_time_add(tmp, timeline);
         timeline += tmptime;
+        queue_push(q->queue, tmp);
     }
 
     return t1_count;
@@ -82,16 +91,40 @@ enum req_type req_q_process_next(req_queue_t q)
     if (!tmp)
         return NO_REQUEST;
 
-    double worktime = my_rand() * 4;
-    q->time_now += worktime;
+    enum req_type tmptype = req_get_type(tmp);
+    if (tmptype == TYPE_TWO)
+        q->t2_in++;
+    else
+        q->t1_in++;
 
-    if (req_get_type(tmp) == TYPE_TWO)
+    q->length_sum += req_q_get_cur_length(q);
+
+    if (q->time_now < req_get_arrival_time(tmp))
     {
-        req_time_add(tmp, worktime);
-        queue_priority_push(q->queue, tmp, 4);
+        q->sleep_time += req_get_arrival_time(tmp) - q->time_now;
+        q->time_now = req_get_arrival_time(tmp);
+    }
+    else if (q->time_now > req_get_arrival_time(tmp))
+    {
+        q->wait_sum += q->time_now - req_get_arrival_time(tmp);
     }
 
-    return req_get_type(tmp);
+    double worktime = my_rand() * MAX_WORK_TIME;
+    q->time_now += worktime;
+
+    if (tmptype == TYPE_TWO)
+    {
+        req_time_add(tmp, worktime);
+        queue_priority_push(q->queue, tmp, MIN(4, req_q_get_cur_length(q)));
+        q->t2_out += 1;
+    }
+    else
+    {
+        req_destroy(&tmp);
+        q->t1_out += 1;
+    }
+
+    return tmptype;
 }
 
 void count_arrived(node_t *el, void *timestamp, void *counter)
@@ -135,4 +168,24 @@ void req_q_reset(req_queue_t q)
 size_t req_q_get_total_length(const req_queue_t q)
 {
     return queue_get_length(q->queue);
+}
+
+size_t req_q_get_t1_out(const req_queue_t q)
+{
+    return q->t1_out;
+}
+
+size_t req_q_get_t2_out(const req_queue_t q)
+{
+    return q->t2_out;
+}
+
+double req_q_get_cur_time(const req_queue_t q)
+{
+    return q->time_now;
+}
+
+double req_q_get_sleep_time(const req_queue_t q)
+{
+    return q->sleep_time;
 }

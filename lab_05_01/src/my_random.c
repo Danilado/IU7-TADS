@@ -2,5 +2,5 @@
 
 double my_rand(void)
 {
-    return ((double)random()) / ((double)LONG_MAX);
+    return ((double)rand()) / ((double)RAND_MAX);
 }

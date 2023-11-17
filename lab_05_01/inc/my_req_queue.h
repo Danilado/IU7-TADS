@@ -4,6 +4,8 @@
 #include "my_queue.h"
 #include "my_request.h"
 
+#define MAX_WORK_TIME 4
+
 typedef struct req_queue *req_queue_t;
 
 req_queue_t req_q_create(void);
@@ -18,5 +20,10 @@ size_t req_q_get_cur_length(const req_queue_t q);
 size_t req_q_get_total_length(const req_queue_t q);
 
 void req_q_reset(req_queue_t q);
+
+size_t req_q_get_t1_out(const req_queue_t q);
+size_t req_q_get_t2_out(const req_queue_t q);
+double req_q_get_cur_time(const req_queue_t q);
+double req_q_get_sleep_time(const req_queue_t q);
 
 #endif

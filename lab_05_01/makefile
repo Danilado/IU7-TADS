@@ -9,13 +9,13 @@ $(shell mkdir -p $(OUTPATH))
 SRCS := $(wildcard $(SRCPATH)*.c)
 SRCS := $(SRCS:.c=.d)
 SRCS := $(subst $(SRCPATH), $(OUTPATH), $(SRCS))
-OBJECTS := $(OUTPATH)my_list.o $(OUTPATH)item.o
-CHECK_OBJECTS := $(OUTPATH)check_my_list.o $(OUTPATH)check_item.o
+OBJECTS := $(OUTPATH)my_list.o $(OUTPATH)my_queue.o $(OUTPATH)my_req_queue.o $(OUTPATH)my_request.o $(OUTPATH)my_random.o
+# CHECK_OBJECTS := $(OUTPATH)check_my_list.o $(OUTPATH)check_item.o
 
 BUILDFLAGS := -lm
-CFLAGS := -std=gnu99 -Wall -Wextra -pedantic -I$(INCPATH)
+CFLAGS := -std=gnu99 -Wall -Werror -Wextra -pedantic -I$(INCPATH)
 DEBUGFLAGS := -O0 -g3 -fprofile-arcs -ftest-coverage
-CHECKFLAGS := -lcheck -lrt
+# CHECKFLAGS := -lcheck -lrt
 
 include $(SRCS)
 
@@ -30,8 +30,8 @@ release: release.lastbuildstate | app.exe
 app.exe: $(OUTPATH)main.o $(OBJECTS)
 	$(CC) $(BUILDFLAGS) $^ -o $@
 
-unit_tests.exe: $(OUTPATH)check_main.o $(OBJECTS) $(CHECK_OBJECTS)
-	$(CC) $(CHECKFLAGS) $(BUILDFLAGS) $^ -o $@
+# unit_tests.exe: $(OUTPATH)check_main.o $(OBJECTS) $(CHECK_OBJECTS)
+# 	$(CC) $(CHECKFLAGS) $(BUILDFLAGS) $^ -o $@
 
 $(OUTPATH)%.o : */%.c
 	$(CC) $(CFLAGS) -c $< -o $@
@@ -75,10 +75,10 @@ endif
 
 # test build part
 
-.PHONY: test_build
-test_build: CFLAGS += $(DEBUGFLAGS) $(CHECKFLAGS)
-test_build: BUILDFLAGS += -fprofile-arcs -lgcov
-test_build: debug.lastbuildstate | unit_tests.exe
+# .PHONY: test_build
+# test_build: CFLAGS += $(DEBUGFLAGS) $(CHECKFLAGS)
+# test_build: BUILDFLAGS += -fprofile-arcs -lgcov
+# test_build: debug.lastbuildstate | unit_tests.exe
 
 # utils part
 
@@ -97,11 +97,11 @@ clean:
 coverage:
 	cd $(OUTPATH) && gcov ./*.gcno
 
-.PHONY: unit
-unit:
-	make test_build
-	./unit_tests.exe
-	make coverage
+# .PHONY: unit
+# unit:
+# 	make test_build
+# 	./unit_tests.exe
+# 	make coverage
 
 .PHONY: func
 func:

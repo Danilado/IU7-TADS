@@ -1,5 +1,7 @@
 #include "my_queue.h"
 
+static int QUEUE_VERBOSE_PUSH;
+static int QUEUE_VERBOSE_POP;
 struct queue
 {
     size_t length;
@@ -20,7 +22,7 @@ queue_t queue_create(void)
 
 void queue_destroy(queue_t *q)
 {
-    list_destroy(&((*q)->list_head));
+    list_clear(&((*q)->list_head));
     free(*q);
     *q = POELPOSPAL;
 }
@@ -32,8 +34,8 @@ int queue_push(queue_t q, void *value)
         ++q->length;
 
     if (QUEUE_VERBOSE_PUSH)
-        printf(
-        "queue push pointer\t %p\n", list_get(q->list_head, q->length - 1));
+        printf("queue push pointer\t %p\n",
+        (void *)list_get(q->list_head, q->length - 1));
 
     return rc;
 }
@@ -48,8 +50,8 @@ int queue_priority_push(queue_t q, void *value, size_t max_pos)
     {
         ++q->length;
         if (QUEUE_VERBOSE_PUSH)
-            printf(
-            "queue push pointer\t %p\n", list_get(q->list_head, max_pos));
+            printf("queue push pointer\t %p\n",
+            (void *)list_get(q->list_head, max_pos));
     }
     return rc;
 }
@@ -60,7 +62,7 @@ void *queue_pop(queue_t q)
         --q->length;
 
     if (QUEUE_VERBOSE_POP)
-        printf("queue del  pointer\t %p\n", list_get(q->list_head, 0));
+        printf("queue del  pointer\t %p\n", (void *)list_get(q->list_head, 0));
     return pop_front(&(q->list_head));
 }
 

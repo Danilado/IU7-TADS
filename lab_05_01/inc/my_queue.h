@@ -14,8 +14,6 @@ enum q_verbose_state
     Q_VERB_ON = 1,
 };
 
-static int QUEUE_VERBOSE_PUSH;
-static int QUEUE_VERBOSE_POP;
 typedef struct queue *queue_t;
 
 void set_verbose_pop(enum q_verbose_state state);
