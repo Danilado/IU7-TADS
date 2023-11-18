@@ -9,7 +9,8 @@ $(shell mkdir -p $(OUTPATH))
 SRCS := $(wildcard $(SRCPATH)*.c)
 SRCS := $(SRCS:.c=.d)
 SRCS := $(subst $(SRCPATH), $(OUTPATH), $(SRCS))
-OBJECTS := $(OUTPATH)my_list.o $(OUTPATH)my_queue.o $(OUTPATH)my_req_queue.o $(OUTPATH)my_request.o $(OUTPATH)my_random.o
+OBJECTS := $(OUTPATH)my_list.o $(OUTPATH)my_a_queue.o $(OUTPATH)my_l_queue.o 
+OBJECTS += $(OUTPATH)my_a_req_queue.o $(OUTPATH)my_l_req_queue.o $(OUTPATH)my_request.o $(OUTPATH)my_random.o
 # CHECK_OBJECTS := $(OUTPATH)check_my_list.o $(OUTPATH)check_item.o
 
 BUILDFLAGS := -lm

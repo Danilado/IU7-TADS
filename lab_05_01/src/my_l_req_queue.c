@@ -1,4 +1,4 @@
-#include "my_req_queue.h"
+#include "my_l_req_queue.h"
 
 #ifndef MIN
 #define MIN(x, y) ((x < y) ? x : y)
@@ -13,12 +13,12 @@ struct req_queue
     size_t t1_out;
     size_t t2_in;
     size_t t2_out;
-    queue_t queue;
+    l_queue_t queue;
 };
 
-req_queue_t req_q_create(void)
+req_queue_l_t req_q_create(void)
 {
-    req_queue_t res = calloc(1, sizeof(struct req_queue));
+    req_queue_l_t res = calloc(1, sizeof(struct req_queue));
     if (!res)
         return POELPOSPAL;
 
@@ -42,7 +42,7 @@ req_queue_t req_q_create(void)
     return res;
 }
 
-void req_q_destroy(req_queue_t *q)
+void req_q_destroy(req_queue_l_t *q)
 {
     req_q_reset(*q);
     queue_destroy(&((*q)->queue));
@@ -50,17 +50,17 @@ void req_q_destroy(req_queue_t *q)
     *q = POELPOSPAL;
 }
 
-double req_q_get_cur_avg_len(req_queue_t q)
+double req_q_get_cur_avg_len(req_queue_l_t q)
 {
     return q->length_sum / (double)(q->t1_out + q->t2_out);
 }
 
-double req_q_get_cur_avg_wait(req_queue_t q)
+double req_q_get_cur_avg_wait(req_queue_l_t q)
 {
     return q->wait_sum / (double)(q->t1_out + q->t2_out);
 }
 
-size_t req_q_fill(req_queue_t q, size_t t1_count)
+size_t req_q_fill(req_queue_l_t q, size_t t1_count)
 {
     double timeline = 0.0;
 
@@ -85,7 +85,7 @@ size_t req_q_fill(req_queue_t q, size_t t1_count)
     return t1_count;
 }
 
-enum req_type req_q_process_next(req_queue_t q)
+enum req_type req_q_process_next(req_queue_l_t q)
 {
     request_t tmp = queue_pop(q->queue);
     if (!tmp)
@@ -134,7 +134,7 @@ void count_arrived(node_t *el, void *timestamp, void *counter)
         ++*(size_t *)counter;
 }
 
-size_t req_q_get_cur_length(const req_queue_t q)
+size_t req_q_get_cur_length(const req_queue_l_t q)
 {
     size_t length = 0;
     queue_apply_darg(q->queue, count_arrived, &(q->time_now), &length);
@@ -149,7 +149,7 @@ void req_destroyer(node_t *el, void *plug1, void *plug2)
     req_destroy(&req);
 }
 
-void req_q_reset(req_queue_t q)
+void req_q_reset(req_queue_l_t q)
 {
     q->time_now = 0.0;
     q->length_sum = 0.0;
@@ -165,27 +165,27 @@ void req_q_reset(req_queue_t q)
     queue_clear(q->queue);
 }
 
-size_t req_q_get_total_length(const req_queue_t q)
+size_t req_q_get_total_length(const req_queue_l_t q)
 {
     return queue_get_length(q->queue);
 }
 
-size_t req_q_get_t1_out(const req_queue_t q)
+size_t req_q_get_t1_out(const req_queue_l_t q)
 {
     return q->t1_out;
 }
 
-size_t req_q_get_t2_out(const req_queue_t q)
+size_t req_q_get_t2_out(const req_queue_l_t q)
 {
     return q->t2_out;
 }
 
-double req_q_get_cur_time(const req_queue_t q)
+double req_q_get_cur_time(const req_queue_l_t q)
 {
     return q->time_now;
 }
 
-double req_q_get_sleep_time(const req_queue_t q)
+double req_q_get_sleep_time(const req_queue_l_t q)
 {
     return q->sleep_time;
 }
