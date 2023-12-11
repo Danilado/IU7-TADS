@@ -5,7 +5,7 @@
 #include "my_request.h"
 
 #ifndef MAX_WORK_TIME
-#define MAX_WORK_TIME 4
+#define MAX_WORK_TIME 5
 #endif
 
 typedef struct req_a_queue *req_queue_a_t;

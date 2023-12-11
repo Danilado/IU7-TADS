@@ -172,10 +172,6 @@ int tree_push(tree_t tree, void *data)
     return EXIT_SUCCESS;
 }
 
-void tree_print(tree_t tree);
-
-void tree_print_level_node_count(tree_t tree);
-
 tree_node_t tree_rec_search(tree_node_t base, compataror_t cmp, void *value)
 {
     if (!base)
@@ -184,11 +180,39 @@ tree_node_t tree_rec_search(tree_node_t base, compataror_t cmp, void *value)
     if (cmp(base->data, value) == 0)
         return base;
 
-    tree_node_t res = tree_rec_search(base->left, cmp, value);
-    if (!res)
-        res = tree_rec_search(base->right, cmp, value);
+    if (cmp(base->data, value) < 0)
+        return tree_rec_search(base->right, cmp, value);
+    else
+        return tree_rec_search(base->left, cmp, value);
+}
 
-    return res;
+size_t tree_count_cmp(tree_t tree, void *data)
+{
+    if (!tree)
+        return 0;
+
+    if (!tree->root)
+        return 0;
+
+    size_t cmps = 0;
+    tree_node_t cur = tree->root;
+
+    while (cur)
+    {
+        ++cmps;
+
+        int tmp = tree->cmp(cur->data, data);
+
+        if (tmp == 0)
+            return cmps;
+
+        if (tmp < 0)
+            cur = cur->right;
+        else
+            cur = cur->left;
+    }
+
+    return cmps;
 }
 
 tree_node_t tree_find(tree_t tree, void *data)
@@ -453,6 +477,93 @@ int int_tree_max(tree_t tree)
     if (!tree || !tree->root)
         return 0;
     return *(int *)tree_right_most(tree->root)->data;
+}
+
+static int node_get_balance(tree_node_t p)
+{
+    return rec_get_depth(p->right, 1) - rec_get_depth(p->left, 1);
+}
+
+static void rotate_right(tree_node_t *node)
+{
+    tree_node_t q = (*node)->left;
+    (*node)->left = q->right;
+    q->right = *node;
+    *node = q;
+}
+
+static void rotate_left(tree_node_t *node)
+{
+    tree_node_t p = (*node)->right;
+    (*node)->right = p->left;
+    p->left = *node;
+    *node = p;
+}
+
+static void recAVLify(tree_node_t *node);
+
+static void balance(tree_node_t *node)
+{
+    if (node_get_balance(*node) >= 2)
+    {
+        if (node_get_balance((*node)->right) < 0)
+            rotate_right(&((*node)->right));
+        rotate_left(node);
+        recAVLify(node);
+        return;
+    }
+
+    if (node_get_balance(*node) <= -2)
+    {
+        if (node_get_balance((*node)->left) > 0)
+            rotate_left(&((*node)->left));
+        rotate_right(node);
+        recAVLify(node);
+        return;
+    }
+}
+
+static void recAVLify(tree_node_t *node)
+{
+    if (!node || !*node)
+        return;
+
+    recAVLify(&((*node)->left));
+    recAVLify(&((*node)->right));
+
+    balance(node);
+}
+
+void AVLify(tree_t tree)
+{
+    if (!tree || !tree->root)
+        return;
+
+    recAVLify(&(tree->root));
+}
+
+size_t tree_get_size(tree_t tree)
+{
+    if (!tree)
+        return 0;
+
+    if (!tree->root)
+        return sizeof(tree_t);
+
+    size_t tree_depth = tree_get_depth(tree);
+    size_t count[tree_depth];
+
+    for (size_t i = 0; i < tree_depth; ++i)
+        count[i] = 0;
+
+    rec_depth_count(tree->root, 0, count);
+
+    size_t node_count = 0;
+    for (size_t i = 0; i < tree_depth; ++i)
+        node_count += count[i];
+
+    return sizeof(tree_t) + sizeof(struct tree) +
+           sizeof(struct tree_node) * node_count;
 }
 
 #undef max

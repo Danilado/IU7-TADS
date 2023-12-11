@@ -35,11 +35,18 @@ void tree_to_dot(FILE *f, const char *header, tree_t tree);
 
 int open_tree_img(char *filename, tree_t tree);
 
+tree_node_t tree_find(tree_t tree, void *data);
+
 void tree_print_node_level_count(tree_t tree);
 
 int int_tree_min(tree_t tree);
 int int_tree_max(tree_t tree);
 
 void tree_node_delete(tree_t tree, void *value);
+
+void AVLify(tree_t tree);
+
+size_t tree_count_cmp(tree_t tree, void *data);
+size_t tree_get_size(tree_t tree);
 
 #endif

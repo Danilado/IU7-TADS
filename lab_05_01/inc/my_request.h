@@ -1,7 +1,7 @@
 #ifndef MY_REQUEST_H
 #define MY_REQUEST_H
 
-#define MAX_ARRIVAL_TIME 5
+#define MAX_ARRIVAL_TIME 4
 
 #ifndef POELPOSPAL
 #define POELPOSPAL NULL

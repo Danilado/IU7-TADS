@@ -1,6 +1,9 @@
 #define _GNU_SOURCE
 #define _POSIX_C_SOURCE 200809L
 
+#define START_HASH_SIZE 25
+
+#include "my_hash.h"
 #include "my_tree.h"
 #include <sys/time.h>
 #include <time.h>
@@ -27,11 +30,17 @@ enum menu
     COUNT_NODES_ON_LEVELS,
     AVG_ADD_TIME,
     DELETE_NUMBER,
+    MAKE_AVL,
+    OPEN_HASH,
+    CLOSED_HASH,
+    FIND_NUMBER,
 };
 
 int main(void)
 {
     tree_t tree = NULL;
+    open_hash_t oha = NULL;
+    closed_hash_t cloha = NULL;
     char *filename = NULL;
 
     int running = 1;
@@ -49,6 +58,10 @@ int main(void)
             printf("5: Посчитать количество узлов дерева на каждом уровне\n");
             printf("6: Вывести среднее время добавления числа в дерево\n");
             printf("7: Удалить число из дерева\n");
+            printf("8: Преобразовать дерево в AVL\n");
+            printf("9: Вывести открытую хэш таблицу\n");
+            printf("10: Вывести закрытую хэш таблицу\n");
+            printf("11: Протестировать поиск числа\n");
             printf(">");
         }
 
@@ -86,6 +99,12 @@ int main(void)
 
             if (tree)
                 tree_destroy(&tree);
+
+            if (oha)
+                open_hash_destroy(&oha);
+
+            if (cloha)
+                closed_hash_destroy(&cloha);
 
             printf("Введите название файла\n>");
             size_t bufsize = 1;
@@ -267,6 +286,119 @@ int main(void)
             continue;
         }
         break;
+        case MAKE_AVL: {
+            if (!tree)
+            {
+                printf("Сначала инициализируйте дерево!\n");
+                continue;
+            }
+
+            AVLify(tree);
+
+            if (open_tree_img("avl_tree", tree))
+            {
+                printf(
+                "Не получилось создать файл с деревом - проверьте права\n");
+            }
+        }
+        break;
+        case OPEN_HASH: {
+            oha = open_hash_init(START_HASH_SIZE);
+
+            FILE *tmp = fopen(filename, "r");
+            open_hash_fread(&oha, tmp);
+            fclose(tmp);
+            puts("Полученная Хэш-таблица (открытая): ");
+            open_hash_print(oha);
+        }
+        break;
+        case CLOSED_HASH: {
+            cloha = closed_hash_init(START_HASH_SIZE);
+
+            FILE *tmp = fopen(filename, "r");
+            closed_hash_fread(&cloha, tmp);
+            fclose(tmp);
+            puts("Полученная Хэш-таблица (закрытая): ");
+            closed_hash_print(cloha);
+        }
+        break;
+        case FIND_NUMBER: {
+            if (!filename)
+            {
+                printf("Вы не выбрали файл для работы!\n");
+                continue;
+            }
+
+            int tmp;
+            printf("Введите число: ");
+            while (scanf("%d", &tmp) != 1)
+            {
+                printf("Ошибка чтения\n");
+                printf("Введите число: ");
+            }
+
+            struct timespec begin, end;
+            long time;
+
+            FILE *f = fopen(filename, "r");
+
+            if (tree)
+                tree_destroy(&tree);
+
+            tree = tree_create_from_file(f, intcmp, "d");
+
+            time_now(begin);
+            tree_find(tree, &tmp);
+            time_now(end);
+            time = delta_time(begin, end);
+
+            printf("Бинарное дерево поиска: %.8ldнс за %.3zu сравнений; "
+                   "Занимает %zuБ\n",
+            time, tree_count_cmp(tree, &tmp), tree_get_size(tree));
+
+            AVLify(tree);
+
+            time_now(begin);
+            tree_find(tree, &tmp);
+            time_now(end);
+            time = delta_time(begin, end);
+
+            printf("AVL дерево:             %.8ldнс за %.3zu сравнений; "
+                   "Занимает %zuБ\n",
+            time, tree_count_cmp(tree, &tmp), tree_get_size(tree));
+
+            if (oha)
+                open_hash_destroy(&oha);
+            oha = open_hash_init(START_HASH_SIZE);
+            open_hash_fread(&oha, f);
+
+            time_now(begin);
+            open_hash_get(oha, tmp);
+            time_now(end);
+            time = delta_time(begin, end);
+
+            printf("Открытая хэш таблица:   %.8ldнс за %.3zu сравнений; "
+                   "Занимает %zuБ\n",
+            time, open_hash_get_comps(oha, tmp), open_hash_get_size(oha));
+
+            if (cloha)
+                closed_hash_destroy(&cloha);
+            cloha = closed_hash_init(START_HASH_SIZE);
+            closed_hash_fread(&cloha, f);
+
+            time_now(begin);
+            closed_hash_get(cloha, tmp);
+            time_now(end);
+            time = delta_time(begin, end);
+
+            printf("Закрытая хэш таблица:   %.8ldнс за %.3zu сравнений; "
+                   "Занимает %zuБ\n",
+            time, closed_hash_get_comps(cloha, tmp),
+            closed_hash_get_size(cloha));
+
+            fclose(f);
+        }
+        break;
 
         default:
             break;
@@ -278,6 +410,12 @@ int main(void)
 
     if (tree)
         tree_destroy(&tree);
+
+    if (oha)
+        open_hash_destroy(&oha);
+
+    if (cloha)
+        closed_hash_destroy(&cloha);
 
     return EXIT_SUCCESS;
 }

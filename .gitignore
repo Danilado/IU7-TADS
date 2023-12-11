@@ -17,3 +17,6 @@ megatest.sh
 */data/*
 
 .bin
+
+*.zip
+*.txt
