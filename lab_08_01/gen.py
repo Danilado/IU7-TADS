@@ -16,6 +16,7 @@ for i in range(paths):
     connections[node].append(path)
 
 with open(f"./graph_{nodes}_{paths}.txt", "w") as f:
+    f.write(f"{nodes}\n")
     for node, cons in enumerate(connections):
         for con in cons:
             f.write(f"{node} {con}\n")

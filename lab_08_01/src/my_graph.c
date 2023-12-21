@@ -1,5 +1,7 @@
 #include "my_graph.h"
-
+#ifndef NDEBUG
+#include <assert.h>
+#endif
 struct graph
 {
     size_t node_count;
@@ -34,8 +36,7 @@ graph_t graph_create(size_t node_count)
         graph_node_t tmp = graph_node_create(i);
         if (!tmp)
         {
-            result->node_count = i;
-            graph_destroy((&result));
+            graph_destroy(&result);
             return NULL;
         }
         result->nodes[i] = tmp;
@@ -69,6 +70,11 @@ int graph_build_path(graph_t graph, size_t from, size_t to)
 
     graph_node_t src = graph->nodes[from];
     graph_node_t dst = graph->nodes[to];
+
+#ifndef NDEBUG
+    assert(src != NULL);
+    assert(dst != NULL);
+#endif
 
     return graph_node_add_neighbour(src, dst);
 }
@@ -160,9 +166,9 @@ static int graph_to_dot(const graph_t graph, char *filename, bool colored)
     if (!f)
         return GRAPH_MISSING_PERMISSIONS;
 
-    fprintf(f, "graph {\n\
-    node [shape=circle, fontname=\"Arial\", fontsize=12];\
-    edge [fontsize=10];");
+    fprintf(f, "digraph {\n"
+               "\tnode [shape=circle, fontname=\"Arial\", fontsize=12];\n"
+               "\tedge [fontsize=10];\n");
 
     char *color;
 
@@ -177,11 +183,13 @@ static int graph_to_dot(const graph_t graph, char *filename, bool colored)
                 color = "red";
         }
 
-        fprintf(f, "%zu [color=\"%s\"];\n", i, color);
+        fprintf(f, "\t%zu [color=\"%s\"];\n", i, color);
+        fprintf(f, "\t%zu -> {", i);
 
-        for (size_t ii = 0; ii < graph->nodes[i]->neighbour_count; ++i)
-            fprintf(
-            f, "%zu -> %zu;\n", i, graph->nodes[i]->neighbours[ii]->index);
+        for (size_t j = 0; j < graph->nodes[i]->neighbour_count; ++j)
+            fprintf(f, "%zu ", graph->nodes[i]->neighbours[j]->index);
+
+        fprintf(f, "};\n");
     }
 
     fprintf(f, "}\n");
@@ -208,6 +216,7 @@ const graph_t graph, size_t from, int **dst, size_t *count)
     if (!*count)
     {
         *dst = NULL;
+        graph_clear_visited(graph);
         return EXIT_SUCCESS;
     }
 
@@ -218,10 +227,110 @@ const graph_t graph, size_t from, int **dst, size_t *count)
         if (!graph->nodes[i]->visited)
             (*dst)[tmp++] = i;
 
+    graph_clear_visited(graph);
     return EXIT_SUCCESS;
 }
 
-int graph_show(const graph_t graph);
+int graph_show(const graph_t graph)
+{
+    if (!graph)
+        return GRAPH_UNINITIALISED;
 
-int graph_show_w_inaccessible_from(
-const graph_t graph, size_t from, graph_node_t **dst);
+    int rc = graph_to_dot(graph, "./out/graph.dot", false);
+    if (rc)
+        return rc;
+
+    system("dot -Tsvg ./out/graph.dot -o ./img/output_graph.svg && sxiv "
+           "./img/output_graph.svg");
+
+    return EXIT_SUCCESS;
+}
+
+int graph_show_w_inaccessible_from(const graph_t graph, size_t from)
+{
+    if (!graph)
+        return GRAPH_UNINITIALISED;
+
+    if (from >= graph->node_count)
+        return GRAPH_OUT_OF_BOUNDS;
+
+    graph_dfs(graph, from, NULL, NULL);
+
+    int rc = graph_to_dot(graph, "./out/graph.dot", true);
+    graph_clear_visited(graph);
+    if (rc)
+        return rc;
+
+    system("dot -Tsvg ./out/graph.dot -o ./img/output_graph.svg && sxiv "
+           "./img/output_graph.svg");
+
+    return EXIT_SUCCESS;
+}
+
+int graph_add_nodes(graph_t graph, size_t node_count)
+{
+    if (!node_count)
+        return EXIT_SUCCESS;
+
+    graph_node_t *tmp = realloc(
+    graph->nodes, sizeof(graph_node_t) * (graph->node_count + node_count));
+    if (!tmp)
+        return GRAPH_NO_MEMORY;
+
+    graph->nodes = tmp;
+
+    for (size_t i = graph->node_count; i < graph->node_count + node_count; ++i)
+    {
+        graph_node_t tmpnode = graph_node_create(i);
+        if (!tmpnode)
+            return GRAPH_NO_MEMORY;
+        graph->nodes[i] = tmpnode;
+    }
+
+    graph->node_count += node_count;
+    return EXIT_SUCCESS;
+}
+
+graph_t graph_create_from_file(FILE *src)
+{
+    if (!src)
+        return NULL;
+
+    size_t node_count;
+    size_t path_count = 0;
+    if (fscanf(src, "%zu", &node_count) != 1)
+        return NULL;
+
+    graph_t res = graph_create(node_count);
+    if (!res)
+        return NULL;
+
+    size_t tmp1, tmp2;
+    while (fscanf(src, "%zu%zu", &tmp1, &tmp2) == 2)
+    {
+        ++path_count;
+        graph_build_path(res, tmp1, tmp2);
+    }
+
+#ifndef NDEBUG
+    printf("Read from file:\n%zu nodes; %zu paths\n\n", node_count, path_count);
+#endif
+
+    return res;
+}
+
+void graph_write_to_file(const graph_t graph, FILE *dst)
+{
+    if (!dst)
+        return;
+
+    fprintf(dst, "%zu\n", graph->node_count);
+    for (size_t i = 0; i < graph->node_count; ++i)
+    {
+        graph_node_t cur = graph->nodes[i];
+        for (size_t j = 0; j < cur->neighbour_count; ++j)
+            fprintf(dst, "%zu %zu\n", i, cur->neighbours[j]->index);
+    }
+
+    return;
+}

@@ -29,7 +29,11 @@ int graph_get_inaccesible_from(
 const graph_t graph, size_t from, int **dst, size_t *count);
 
 int graph_show(const graph_t graph);
-int graph_show_w_inaccessible_from(
-const graph_t graph, size_t from, graph_node_t **dst);
+int graph_show_w_inaccessible_from(const graph_t graph, size_t from);
+
+int graph_add_nodes(graph_t graph, size_t node_count);
+
+graph_t graph_create_from_file(FILE *src);
+void graph_write_to_file(const graph_t graph, FILE *dst);
 
 #endif

@@ -3,44 +3,59 @@
 
 #define START_HASH_SIZE 25
 
-#include "my_hash.h"
-#include "my_tree.h"
-#include <sys/time.h>
-#include <time.h>
-
-#define time_now(x) clock_gettime(CLOCK_REALTIME, &x)
-
-long delta_time(struct timespec mt1, struct timespec mt2)
-{
-    return 1000000000 * (mt2.tv_sec - mt1.tv_sec) + (mt2.tv_nsec - mt1.tv_nsec);
-}
-
-int intcmp(const void *l, const void *r)
-{
-    return *(int *)l - *(int *)r;
-}
+#include "my_graph.h"
 
 enum menu
 {
-    EXIT,
-    SHOW_TREE,
-    CHOOSE_FILE,
-    PARSE_FILE,
-    ADD_NUMBER,
-    COUNT_NODES_ON_LEVELS,
-    AVG_ADD_TIME,
-    DELETE_NUMBER,
-    MAKE_AVL,
-    OPEN_HASH,
-    CLOSED_HASH,
-    FIND_NUMBER,
+    EXIT = 0,
+    OPEN_FILE,
+    READ_FILE,
+    WRITE_FILE,
+    SHOW_GRAPH,
+    ADD_PATH,
+    ADD_PATHS,
+    ADD_NODE,
+    ADD_NODES,
+    GET_INACC,
+    SHOW_INACC,
 };
+
+int graph_add_path(graph_t graph)
+{
+    if (!graph)
+    {
+        puts("Сначала инициализируйте граф!");
+        return EXIT_FAILURE;
+    }
+
+    long from, to;
+    printf("Введите два индекса - откуда и куда\n> ");
+
+    if (scanf("%ld%ld", &from, &to) != 2)
+    {
+        puts("Ошибка чтения!");
+        return EXIT_FAILURE;
+    }
+
+    int rc = graph_build_path(graph, from, to);
+    if (rc)
+    {
+        if (rc == GRAPH_NO_MEMORY)
+            puts("Не хватило памяти...");
+        else if (rc == GRAPH_OUT_OF_BOUNDS)
+            puts("Индексы вне пределов графа...");
+        else
+            puts("Возникла непредвиденная ошибка...");
+        return rc;
+    }
+
+    puts("Дуга успешно добавлена!");
+    return EXIT_SUCCESS;
+}
 
 int main(void)
 {
-    tree_t tree = NULL;
-    open_hash_t oha = NULL;
-    closed_hash_t cloha = NULL;
+    graph_t graph = NULL;
     char *filename = NULL;
 
     int running = 1;
@@ -51,17 +66,17 @@ int main(void)
             printf("Текущий файл: %s\n", (filename ? filename : "Не выбран"));
             printf("Меню:\n");
             printf("0: Выход\n");
-            printf("1: Вывести дерево на экран\n");
-            printf("2: Выбрать файл для работы\n");
-            printf("3: Считать дерево из файла\n");
-            printf("4: Добавить число в дерево\n");
-            printf("5: Посчитать количество узлов дерева на каждом уровне\n");
-            printf("6: Вывести среднее время добавления числа в дерево\n");
-            printf("7: Удалить число из дерева\n");
-            printf("8: Преобразовать дерево в AVL\n");
-            printf("9: Вывести открытую хэш таблицу\n");
-            printf("10: Вывести закрытую хэш таблицу\n");
-            printf("11: Протестировать поиск числа\n");
+            printf("1: Выбрать файл для работы\n");
+            printf("2: Считать граф из файла\n");
+            printf("3: Записать граф в файл\n");
+            printf("4: Вывести граф на экран\n");
+            printf("5: Добавить дугу в граф\n");
+            printf("6: Добавить дуги в граф\n");
+            printf("7: Добавить вершину в граф\n");
+            printf("8: Добавить вершины в граф\n");
+            printf("9: Вывести недоступные из данной вершины вершины\n");
+            printf(
+            "10: Показать недоступные из данной вершины вершины визуально\n");
             printf(">");
         }
 
@@ -75,20 +90,20 @@ int main(void)
             running = 0;
         }
         break;
-        case SHOW_TREE: {
-            if (!tree)
+        case SHOW_GRAPH: {
+            if (!graph)
             {
-                printf("Сначала инициализируйте дерево!\n");
+                printf("Сначала инициализируйте граф!\n");
                 break;
             }
-            if (open_tree_img("tree", tree))
+            if (graph_show(graph))
             {
                 printf(
-                "Не получилось создать файл с деревом - проверьте права\n");
+                "Не получилось создать файл с графом - проверьте права\n");
             }
         }
         break;
-        case CHOOSE_FILE: {
+        case OPEN_FILE: {
             getc(stdin);
 
             if (filename)
@@ -97,14 +112,8 @@ int main(void)
                 filename = NULL;
             }
 
-            if (tree)
-                tree_destroy(&tree);
-
-            if (oha)
-                open_hash_destroy(&oha);
-
-            if (cloha)
-                closed_hash_destroy(&cloha);
+            if (graph)
+                graph_destroy(&graph);
 
             printf("Введите название файла\n>");
             size_t bufsize = 1;
@@ -131,7 +140,7 @@ int main(void)
             filename = buf;
         }
         break;
-        case PARSE_FILE: {
+        case READ_FILE: {
             FILE *tmp = fopen(filename, "r");
             if (!tmp)
             {
@@ -139,264 +148,177 @@ int main(void)
                 continue;
             }
 
-            if (tree)
-                tree_destroy(&tree);
+            if (graph)
+                graph_destroy(&graph);
 
-            tree = tree_create_from_file(tmp, intcmp, "d");
-            if (!tree)
-                printf("Возникли ошибки при создании дерева (скорее всего не "
+            graph = graph_create_from_file(tmp);
+            if (!graph)
+                printf("Возникли ошибки при создании графа (скорее всего не "
                        "хватило памяти)");
 
             fclose(tmp);
         }
         break;
-        case ADD_NUMBER: {
+        case WRITE_FILE: {
             if (!filename)
             {
                 printf("Вы не выбрали файл для работы!\n");
                 continue;
             }
 
-            if (!tree)
+            if (!graph)
             {
-                tree = tree_create(intcmp, "d");
-                if (!tree)
+                printf("Сначала инициализируйте граф!\n");
+                continue;
+            }
+
+            FILE *tmp = fopen(filename, "w");
+            if (!tmp)
+            {
+                puts("Файла не существует, или не хватает прав");
+                continue;
+            }
+
+            graph_write_to_file(graph, tmp);
+            fclose(tmp);
+        }
+        break;
+        case ADD_NODE: {
+            if (!filename)
+            {
+                printf("Вы не выбрали файл для работы!\n");
+                continue;
+            }
+
+            if (!graph)
+            {
+                graph = graph_create(1);
+                if (!graph)
                 {
-                    printf("Не удалось инициализировать дерево\n");
+                    printf("Не удалось инициализировать граф\n");
                     continue;
                 }
             }
-
-            int tmp;
-            printf("Введите число: ");
-            while (scanf("%d", &tmp) != 1)
+            else
             {
-                printf("Ошибка чтения\n");
-                printf("Введите число: ");
-            }
-
-            struct timespec begin, end;
-            long time1, time2;
-
-            FILE *f = fopen(filename, "a");
-            if (!f)
-            {
-                printf("Не удалось открыть файл для записи\n");
-                continue;
-            }
-
-            int *buf = calloc(1, sizeof(int));
-            if (!buf)
-            {
-                fclose(f);
-                printf("Не хватает места для числа\n");
-                continue;
-            }
-
-            *buf = tmp;
-
-            time_now(begin);
-            fprintf(f, " %d\n", tmp);
-            time_now(end);
-            time1 = delta_time(begin, end);
-
-            time_now(begin);
-            int rc = tree_push(tree, buf);
-            time_now(end);
-            time2 = delta_time(begin, end);
-
-            if (rc)
-            {
-                free(buf);
-                printf("Не удалось записать число в дерево");
-                continue;
-            }
-
-            printf("Время добавления числа в файл:   %ldнс\n", time1);
-            printf("Время добавления числа в дерево: %ldнс\n", time2);
-
-            fclose(f);
-        }
-        break;
-        case COUNT_NODES_ON_LEVELS: {
-            tree_print_node_level_count(tree);
-        }
-        break;
-        case AVG_ADD_TIME: {
-            if (!tree)
-            {
-                printf("Сначала инициализируйте дерево!\n");
-                continue;
-            }
-
-            struct timespec begin, end;
-            double timesum = 0;
-
-            int tmin = int_tree_min(tree);
-            int tmax = int_tree_max(tree);
-
-            for (int i = tmin; i <= tmax; ++i)
-            {
-                int *buf = calloc(1, sizeof(int));
-                if (!buf)
+                if (graph_add_nodes(graph, 1))
                 {
-                    printf("Не хватает места для числа\n");
+                    puts("Возникла ошибка. Скорее всего не хватило памяти");
                     continue;
-                }
-
-                *buf = i;
-
-                time_now(begin);
-                tree_push(tree, buf);
-                time_now(end);
-
-                timesum += delta_time(begin, end);
+                };
             }
-
-            printf("Среднее время добавления числа в дерево: %.2lfнс\n",
-            timesum / (double)(tmax - tmin + 1));
-            continue;
         }
         break;
-        case DELETE_NUMBER: {
-            if (!filename)
-            {
-                printf("Вы не выбрали файл для работы!\n");
-                continue;
-            }
 
-            if (!tree)
-            {
-                printf("Сначала инициализируйте дерево\n");
-                continue;
-            }
-
+        case ADD_NODES: {
+            printf("Введите количество узлов: ");
             int tmp;
-            printf("Введите число для удаления: ");
-            while (scanf("%d", &tmp) != 1)
+            if (scanf("%d", &tmp) != 1)
             {
-                printf("Ошибка чтения\n");
-                printf("Введите число: ");
-            }
-
-            int *buf = calloc(1, sizeof(int));
-            *buf = tmp;
-
-            tree_node_delete(tree, buf);
-            continue;
-        }
-        break;
-        case MAKE_AVL: {
-            if (!tree)
-            {
-                printf("Сначала инициализируйте дерево!\n");
+                puts("Ошибка чтения!");
                 continue;
             }
 
-            AVLify(tree);
-
-            if (open_tree_img("avl_tree", tree))
+            if (!graph)
             {
-                printf(
-                "Не получилось создать файл с деревом - проверьте права\n");
-            }
-        }
-        break;
-        case OPEN_HASH: {
-            oha = open_hash_init(START_HASH_SIZE);
-
-            FILE *tmp = fopen(filename, "r");
-            open_hash_fread(&oha, tmp);
-            fclose(tmp);
-            puts("Полученная Хэш-таблица (открытая): ");
-            open_hash_print(oha);
-        }
-        break;
-        case CLOSED_HASH: {
-            cloha = closed_hash_init(START_HASH_SIZE);
-
-            FILE *tmp = fopen(filename, "r");
-            closed_hash_fread(&cloha, tmp);
-            fclose(tmp);
-            puts("Полученная Хэш-таблица (закрытая): ");
-            closed_hash_print(cloha);
-        }
-        break;
-        case FIND_NUMBER: {
-            if (!filename)
-            {
-                printf("Вы не выбрали файл для работы!\n");
+                graph = graph_create(tmp);
+                if (!graph)
+                    printf("Не удалось инициализировать граф\n");
                 continue;
             }
 
+            if (graph_add_nodes(graph, tmp))
+            {
+                puts("Возникла ошибка. Скорее всего не хватило памяти");
+                continue;
+            };
+        }
+        break;
+
+        case ADD_PATH: {
+            if (!graph)
+            {
+                puts("Сначала инициализируйте граф!");
+                break;
+            }
+
+            graph_add_path(graph);
+        }
+        break;
+
+        case ADD_PATHS: {
+            if (!graph)
+            {
+                puts("Сначала инициализируйте граф!");
+                break;
+            }
+
+            printf("Введите количество дуг: ");
             int tmp;
-            printf("Введите число: ");
-            while (scanf("%d", &tmp) != 1)
+            if (scanf("%d", &tmp) != 1)
             {
-                printf("Ошибка чтения\n");
-                printf("Введите число: ");
+                puts("Ошибка чтения!");
+                continue;
             }
 
-            struct timespec begin, end;
-            long time;
+            int fails = 0;
+            for (int i = 0; i < tmp && fails < 3; ++i)
+                if (graph_add_path(graph))
+                    ++fails;
+        }
+        break;
 
-            FILE *f = fopen(filename, "r");
+        case GET_INACC: {
+            if (!graph)
+            {
+                puts("Сначала инициализируйте граф!");
+                break;
+            }
 
-            if (tree)
-                tree_destroy(&tree);
+            printf("Введите индекс начального узла: ");
+            int tmp;
+            if (scanf("%d", &tmp) != 1 || tmp < 0)
+            {
+                puts("Ошибка чтения!");
+                continue;
+            }
 
-            tree = tree_create_from_file(f, intcmp, "d");
+            int *arr;
+            size_t arrlen;
 
-            time_now(begin);
-            tree_find(tree, &tmp);
-            time_now(end);
-            time = delta_time(begin, end);
+            graph_get_inaccesible_from(graph, tmp, &arr, &arrlen);
 
-            printf("Бинарное дерево поиска: %.8ldнс за %.3zu сравнений; "
-                   "Занимает %zuБ\n",
-            time, tree_count_cmp(tree, &tmp), tree_get_size(tree));
+            if (!arrlen)
+            {
+                puts("Все вершины достижимы.");
+                continue;
+            }
 
-            AVLify(tree);
+            puts("Недостижимые вершины:");
+            for (size_t i = 0; i < arrlen; ++i)
+                printf("%d ", arr[i]);
+            printf("\n");
 
-            time_now(begin);
-            tree_find(tree, &tmp);
-            time_now(end);
-            time = delta_time(begin, end);
+            free(arr);
+        }
+        break;
 
-            printf("AVL дерево:             %.8ldнс за %.3zu сравнений; "
-                   "Занимает %zuБ\n",
-            time, tree_count_cmp(tree, &tmp), tree_get_size(tree));
+        case SHOW_INACC: {
+            if (!graph)
+            {
+                puts("Сначала инициализируйте граф!");
+                break;
+            }
 
-            if (oha)
-                open_hash_destroy(&oha);
-            oha = open_hash_init(START_HASH_SIZE);
-            open_hash_fread(&oha, f);
+            printf("Введите индекс начального узла: ");
+            int tmp;
+            if (scanf("%d", &tmp) != 1)
+            {
+                puts("Ошибка чтения!");
+                continue;
+            }
 
-            time_now(begin);
-            open_hash_get(oha, tmp);
-            time_now(end);
-            time = delta_time(begin, end);
-
-            printf("Открытая хэш таблица:   %.8ldнс за %.3zu сравнений; "
-                   "Занимает %zuБ\n",
-            time, open_hash_get_comps(oha, tmp), open_hash_get_size(oha));
-
-            if (cloha)
-                closed_hash_destroy(&cloha);
-            cloha = closed_hash_init(START_HASH_SIZE);
-            closed_hash_fread(&cloha, f);
-
-            time_now(begin);
-            closed_hash_get(cloha, tmp);
-            time_now(end);
-            time = delta_time(begin, end);
-
-            printf("Закрытая хэш таблица:   %.8ldнс за %.3zu сравнений; "
-                   "Занимает %zuБ\n",
-            time, closed_hash_get_comps(cloha, tmp),
-            closed_hash_get_size(cloha));
-
-            fclose(f);
+            graph_show_w_inaccessible_from(graph, tmp);
         }
         break;
 
@@ -408,14 +330,8 @@ int main(void)
     if (filename)
         free(filename);
 
-    if (tree)
-        tree_destroy(&tree);
-
-    if (oha)
-        open_hash_destroy(&oha);
-
-    if (cloha)
-        closed_hash_destroy(&cloha);
+    if (graph)
+        graph_destroy(&graph);
 
     return EXIT_SUCCESS;
 }
