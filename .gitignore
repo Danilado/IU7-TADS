@@ -11,6 +11,8 @@ out.*
 megatest.sh
 
 *.d
+*.a
+*.so
 *.lastbuildstate
 
 */data

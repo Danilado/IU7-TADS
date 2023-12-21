@@ -1,7 +1,7 @@
 from random import randint
 
-nodes = int(input("Введите количество узлов"))
-paths = int(input("Введите количество путей"))
+nodes = int(input("Введите количество узлов: "))
+paths = int(input("Введите количество путей: "))
 
 connections = [[] for _ in range(nodes)]
 
